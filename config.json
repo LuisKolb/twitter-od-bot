@@ -1,0 +1,5 @@
+{
+    "last_id_filename": "recent_ids.json",
+    "max_tweets_to_fetch": 10,
+    "step_size": 5
+}
