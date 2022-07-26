@@ -1,7 +1,13 @@
 # utils
+import subprocess
 from dotenv import load_dotenv
 import json
 import os
+import base64
+import requests
+import ast
+from PIL import Image
+from tempfile import mkstemp 
 
 # twitter SDK
 import tweepy
@@ -32,10 +38,12 @@ def setup():
     global last_id_filename     # where to store the id of the oldest mention that's already processed
     global max_tweets_to_fetch  # max number of tweets to look at
     global step_size            # tweets to fetch at once
+    global detection_url
 
     last_id_filename = config['last_id_filename']
     max_tweets_to_fetch = config['max_tweets_to_fetch']
     step_size = config['step_size']
+    detection_url = config['detection_url']
     
     return api, handle, own_id
 
@@ -90,10 +98,33 @@ def check_mentions(api, handle):
                 oldest_seen = status.id
             if status.id > highest_id_in_run:
                 highest_id_in_run = status.id
-            print(f'{status.id}: {status.text}') # TODO: respond to mentions
+            # TODO: respond to mentions
+            # get image media, otherwise ignore
+            if 'media' in status.extended_entities:
+                media = status.extended_entities['media']
+            
+
+                if len(media) > 0:
+                    resp_media_ids = []
+                    for entry in media:
+                        if entry['type'] == 'photo' and entry['media_url_https']:
+                                # send media to endpoint
+                                # recieve image back and build response
+                                payload = {'input': entry['media_url_https'], 'output':1}
+                                response = requests.post(detection_url+'/api/detect', data=payload)
+                                
+                                fd, path = mkstemp(suffix='.jpg')
+                                with open(fd, 'wb') as file:
+                                    file.write(base64.b64decode(bytes.fromhex(response.json()['annonated_image_b64'])))
+ 
+                                resp = api.media_upload(path)
+                                resp_media_ids.append(resp.media_id)
+                # send the response 
+                #print(res_media_ids)
+                api.update_status(f'hi @{status.user.screen_name}! here are your results.', in_reply_to_status_id=status.id, auto_populate_reply_metadata=True, media_ids=resp_media_ids)
 
         i = i+1
-        
+
 
 if __name__ == '__main__':
     api, handle, own_id = setup()

@@ -1,5 +1,6 @@
 {
     "last_id_filename": "recent_ids.json",
     "max_tweets_to_fetch": 10,
-    "step_size": 5
+    "step_size": 5,
+    "detection_url": "http://172.19.233.239:5000"
 }
